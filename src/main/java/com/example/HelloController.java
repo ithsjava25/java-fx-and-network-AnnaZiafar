@@ -1,7 +1,9 @@
 package com.example;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 
 /**
  * Controller layer: mediates between the view (FXML) and the model.
@@ -9,6 +11,9 @@ import javafx.scene.control.Label;
 public class HelloController {
 
     private final HelloModel model = new HelloModel();
+    public ListView<NtfyMessage> messageView;
+    
+
 
     @FXML
     private Label messageLabel;
@@ -18,5 +23,9 @@ public class HelloController {
         if (messageLabel != null) {
             messageLabel.setText(model.getGreeting());
         }
+    }
+
+    public void sendMessage(ActionEvent actionEvent) {
+        model.sendMessage();
     }
 }
