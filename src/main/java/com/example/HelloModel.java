@@ -1,7 +1,10 @@
 package com.example;
 
 import io.github.cdimascio.dotenv.Dotenv;
+import javafx.application.Platform;
 import javafx.beans.Observable;
+import javafx.beans.property.SimpleStringProperty;
+import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tools.jackson.databind.ObjectMapper;
@@ -11,26 +14,41 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.PublicKey;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Model layer: encapsulates application data and business logic.
  */
 public class HelloModel {
 
-    private final String hostName;
-    private final HttpClient http = HttpClient.newHttpClient();
     private final ObservableList<NtfyMessage> messages = FXCollections.observableArrayList();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private final NtfyConnection connection;
+    private final StringProperty messageToSend = new SimpleStringProperty();
 
-    public HelloModel(){
-        Dotenv dotenv = Dotenv.load();
-        hostName = Objects.requireNonNull(dotenv.get("HOST_NAME"));
+    public HelloModel(NtfyConnection connection){
         receiveMessage();
+        this.connection = connection;
     }
 
+    public ObservableList<NtfyMessage> getMessages (){
+        return messages;
+    }
+
+    public String getMessageToSend() {
+        return messageToSend.get();
+    }
+
+    public StringProperty messageToSendProperty() {
+        return messageToSend;
+    }
+
+    public void setMessageToSend(String message){
+        messageToSend.set(message);
+    }
 
     /**
      * Returns a greeting based on the current Java and JavaFX versions.
@@ -41,38 +59,15 @@ public class HelloModel {
         return "Hello, JavaFX " + javafxVersion + ", running on Java " + javaVersion + ".";
     }
 
-//    public String inputMessage(){
-//        return IO.readln();
-//    }
-
     public void sendMessage() {
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString("Hello World!"))
-                .uri(URI.create(hostName + "/anna"))
-                .build();
-
-        try {
-            var response = http.send(httpRequest, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException e) {
-            System.out.println("Error occurred when trying to send message.");
-        } catch (InterruptedException e) {
-            System.out.println("Process interrupted when sending message.");        }
+        connection.send(messageToSend.get());
 
 
     }
 
     public void receiveMessage(){
-        HttpRequest httpRequest = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create(hostName + "/anna/json"))
-                .build();
+        connection.receive(m -> Platform.runLater(() -> messages.add(m)));
 
-        http.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofLines())
-                .thenAccept(response -> response.body()
-                        .map(s -> objectMapper.readValue(s, NtfyMessage.class))
-                        .filter(s -> s.event().equals("message"))
-                        .peek(System.out::println)
-                        .forEach(s -> messages.add(s)));
     }
 }
 
