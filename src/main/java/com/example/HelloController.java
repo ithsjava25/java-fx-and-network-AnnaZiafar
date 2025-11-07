@@ -12,7 +12,7 @@ import javafx.scene.input.MouseEvent;
  */
 public class HelloController {
 
-    private final HelloModel model = new HelloModel(null);
+    private final HelloModel model = new HelloModel(new NtfyConnectionImpl());
     public ListView<NtfyMessage> messageView;
 
 
