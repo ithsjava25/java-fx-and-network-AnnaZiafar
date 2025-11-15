@@ -5,6 +5,8 @@ module hellofx {
     requires java.net.http;
     requires tools.jackson.databind;
     requires javafx.graphics;
+    requires javafx.base;
+    requires java.xml;
 
     opens com.example to javafx.fxml;
     exports com.example;

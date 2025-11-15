@@ -7,17 +7,14 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.scene.control.ListCell;
 import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.util.JSONPObject;
 
+import javax.xml.xpath.XPath;
+import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.security.PublicKey;
-import java.util.ArrayList;
-import java.util.Objects;
-import java.util.function.Consumer;
+
 
 /**
  * Model layer: encapsulates application data and business logic.
@@ -25,13 +22,14 @@ import java.util.function.Consumer;
 public class HelloModel {
 
     private final ObservableList<NtfyMessage> messages = FXCollections.observableArrayList();
+    private final StringProperty messageToSend = new SimpleStringProperty();
 
     private final NtfyConnection connection;
-    private final StringProperty messageToSend = new SimpleStringProperty();
+    private String topic;
+
 
     public HelloModel(NtfyConnection connection){
         this.connection = connection;
-        receiveMessage();
     }
 
     public ObservableList<NtfyMessage> getMessages (){
@@ -50,24 +48,29 @@ public class HelloModel {
         messageToSend.set(message);
     }
 
+    public void setTopic(String topic){
+        this.topic = topic;
+    }
+
+    public String getTopic(){
+        return topic;
+    }
+
     /**
      * Returns a greeting based on the current Java and JavaFX versions.
      */
     public String getGreeting() {
-        String javaVersion = System.getProperty("java.version");
-        String javafxVersion = System.getProperty("javafx.version");
-        return "Hello, JavaFX " + javafxVersion + ", running on Java " + javaVersion + ".";
+        return "Welcome to Chattrix!";
     }
 
     public void sendMessage() {
-        connection.send(messageToSend.get());
-
-
+        connection.send(messageToSend.get(), getTopic());
     }
 
     public void receiveMessage(){
-        connection.receive(m -> Platform.runLater(() -> messages.add(m)));
-
+        connection.receive(m -> Platform.runLater(() -> messages.add(m)), getTopic());
     }
+
+
 }
 

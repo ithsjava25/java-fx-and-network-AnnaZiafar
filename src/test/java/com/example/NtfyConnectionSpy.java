@@ -4,15 +4,16 @@ import java.util.function.Consumer;
 
 public class NtfyConnectionSpy implements NtfyConnection{
     String message;
+    String topic;
 
     @Override
-    public boolean send(String message) {
+    public void send(String message, String topic) {
         this.message = message;
-        return true;
+        this.topic = topic;
     }
 
     @Override
-    public void receive(Consumer<NtfyMessage> message) {
+    public void receive(Consumer<NtfyMessage> message, String topic) {
 
     }
 }

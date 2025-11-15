@@ -34,4 +34,11 @@ class HelloModelTest {
     
     }
 
+    @Test
+    void receiveMessageFromFakeServer(WireMockRuntimeInfo wmRuntimeInfo) {
+        var con = new NtfyConnectionImpl("http://localhost:" + wmRuntimeInfo.getHttpPort());
+        var model = new HelloModel(con);
+
+    }
+
 }
