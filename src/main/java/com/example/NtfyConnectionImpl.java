@@ -13,12 +13,14 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class NtfyConnectionImpl implements NtfyConnection {
     private final String hostName;
     private final HttpClient http = HttpClient.newHttpClient();
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private CompletableFuture<Void> activeListener;
 
     public NtfyConnectionImpl(){
         Dotenv dotenv = Dotenv.load();
@@ -49,12 +51,17 @@ public class NtfyConnectionImpl implements NtfyConnection {
 
     @Override
     public void receive(Consumer<NtfyMessage> message, String topic) {
+
+        if(activeListener != null){
+            activeListener.cancel(true);
+        }
+
         HttpRequest httpRequest = HttpRequest.newBuilder()
                 .GET()
                 .uri(URI.create(hostName + "/" + topic + "/json"))
                 .build();
 
-        http.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofLines())
+        activeListener = http.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofLines())
                 .thenAccept(response -> response.body()
                         .map(s -> objectMapper.readValue(s, NtfyMessage.class))
                         .filter(s -> s.event().equals("message"))

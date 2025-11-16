@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 
 public class FileInput {
@@ -59,9 +60,10 @@ public class FileInput {
     }
 
     public File createFile(File file) throws IOException {
-        getDirectory();
-        if(file.createNewFile())
+        if(file.createNewFile()){
+            objectMapper.writeValue(file, Collections.emptyList());
             return file;
+        }
         else
             throw new IOException("Something went wrong when creating the file");
     }
