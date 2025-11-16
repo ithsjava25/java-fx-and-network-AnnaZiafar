@@ -3,93 +3,89 @@ package com.example;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import tools.jackson.core.type.TypeReference;
-import tools.jackson.databind.JavaType;
 import tools.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 public class FileInput {
     private final ObservableList<NtfyMessage> messages = FXCollections.observableArrayList();
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final HelloModel model;
-    private final String currentTopic;
 
-    public FileInput(HelloModel model){
-        this.model = model;
-        currentTopic = model.getTopic();
+    private final String homeFolder = System.getProperty("user.home");
+    private final File directory = Paths.get(homeFolder, "chattrix").toFile();
+    private final File messageFile = Paths.get(String.valueOf(directory), "messages.json").toFile();
+
+    public ObservableList<NtfyMessage> getMessages (){
+        return messages;
     }
 
-//    public ObservableList<NtfyMessage> getMessages() {
-//
-//    }
+    public void addMessage(NtfyMessage message){
+        this.messages.add(message);
+        try {
+            saveMessagesJSONFile();
+        } catch (IOException e) {
+            System.out.println("Failed to save message");
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void loadMessagesFromFile() throws IOException {
+        this.messages.clear();
+        if(getFile(messageFile).length() > 0){
+            List<NtfyMessage> oldMessages = getExistingMessages();
+            this.messages.addAll(oldMessages);
+        }
+    }
 
     public void saveMessagesJSONFile() throws IOException {
-        List<NtfyMessage> allMessages = new ArrayList<>();
-        File targetFile = getFile();
-        if(targetFile.length() > 0){
-            TypeReference<List<NtfyMessage>> jacksonTypeReference = new TypeReference<>() {};
-            List<NtfyMessage> oldMessages = objectMapper.readValue(targetFile, jacksonTypeReference);
-            allMessages.addAll(oldMessages);
-        }
-
-        allMessages.addAll(model.getMessages());
-        objectMapper.writeValue(targetFile, allMessages);
+        objectMapper.writeValue(getFile(messageFile), this.messages);
     }
 
-    public String fileName(){
-        return currentTopic + ".json";
+    public List<NtfyMessage> getExistingMessages() throws IOException {
+        TypeReference<List<NtfyMessage>> jacksonTypeReference = new TypeReference<>() {};
+        return objectMapper.readValue(getFile(messageFile), jacksonTypeReference);
     }
 
-    public File getFile() throws IOException {
-        File file = new File(getDirectory(), fileName());
+    public File getFile(File file) throws IOException {
+        getDirectory();
         if(file.exists())
             return file;
         else
-            return createFile();
+            return createFile(file);
     }
 
-    private File createFile() throws IOException {
-        File file = new File(getDirectory(), fileName());
+    public File createFile(File file) throws IOException {
+        getDirectory();
         if(file.createNewFile())
             return file;
-        else {
-            throw new IOException("Something went wrong when creating the file.");
-        }
+        else
+            throw new IOException("Something went wrong when creating the file");
     }
 
-    public File createDirectory(){
-        File directory = directoryPath();
-        boolean directoryCreated = directory.mkdir();
-        if(directoryCreated){
-            return directory;
-        } else {
-            throw new RuntimeException("Failed to create directory. There already exists a file called chattrix.");
-        }
-    }
-
-    public File getDirectory(){
+     public File getDirectory(){
         if(doesDirectoryExist())
-            return directoryPath();
+            return directory;
         else
             return createDirectory();
-    }
+     }
+
+     public File createDirectory(){
+         boolean directoryCreated = directory.mkdir();
+         if(directoryCreated || directory.exists()){
+             return directory;
+         } else {
+             throw new RuntimeException("Failed to create directory");
+         }
+     }
 
     public boolean doesDirectoryExist(){
-        File directory = directoryPath();
-        if(directory.exists() && directory.isDirectory())
-            return true;
-        else
-            return false;
+        return directory.exists() && directory.isDirectory();
     }
 
-    public File directoryPath(){
-        String directoryName = "chattrix";
-        String homeFolder = System.getProperty("user.home");
-        String directoryPath = homeFolder + File.separator + directoryName;
-
-        return new File(directoryPath);
-    }
 }
+
+

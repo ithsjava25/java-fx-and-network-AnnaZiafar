@@ -1,21 +1,16 @@
 package com.example;
 
-import javafx.collections.FXCollections;
+import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
+import java.io.IOException;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Controller layer: mediates between the view (FXML) and the model.
@@ -23,7 +18,8 @@ import java.util.stream.Collectors;
 public class HelloController {
 
     private final HelloModel model = new HelloModel(new NtfyConnectionImpl());
-    private final FileInput fileInput = new FileInput(model);
+    private final FileInput fileInput = new FileInput();
+    private final FilteredList<NtfyMessage> filteredMessages = new FilteredList<>(fileInput.getMessages());
 
     @FXML
     public ListView<NtfyMessage> messageView;
@@ -49,7 +45,9 @@ public class HelloController {
         if (messageLabel != null) {
             messageLabel.setText(model.getGreeting());
         }
-        messageView.setItems(model.getMessages());
+
+        model.setFileInput(fileInput);
+        messageView.setItems(filteredMessages);
         messageView.setCellFactory(list -> createCell());
     }
 
@@ -88,16 +86,19 @@ public class HelloController {
         else {
             model.setTopic(topic);
             model.receiveMessage();
+            filteredMessages.setPredicate(message -> message.topic().equals(topic));
 
             topicBox.setVisible(false);
             topicBox.setManaged(false);
             topicField.setText("");
 
+            currentTopicLabel.setText("Topic: " + topic);
             currentTopicBox.setVisible(true);
             currentTopicBox.setManaged(true);
 
             messageBox.setManaged(true);
             messageBox.setVisible(true);
+            messageView.setVisible(true);
 
             changeTopicButton.setManaged(true);
             changeTopicButton.setVisible(true);
@@ -111,10 +112,14 @@ public class HelloController {
         if(message.isBlank())
             System.out.println("You can not send an empty message. Please try again.");
         else
-            model.setMessageToSend(message);
+            model.sendMessage(message);
 
-        model.sendMessage();
-
+        try{
+            fileInput.saveMessagesJSONFile();
+        } catch (IOException e) {
+            System.out.println("Could not save recieved messages to file");
+            throw new RuntimeException(e);
+        }
         messageField.setText("");
     }
 
@@ -128,5 +133,8 @@ public class HelloController {
 
         changeTopicButton.setVisible(false);
         changeTopicButton.setManaged(false);
+        currentTopicBox.setVisible(false);
+
+        messageView.setVisible(false);
     }
 }
